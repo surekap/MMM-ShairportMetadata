@@ -11,7 +11,8 @@ Module.register("MMM-ShairportMetadata",{
 
 	// Module config defaults.
 	defaults: {
-		metadataPipe: "/tmp/shairport-sync-metadata"
+		metadataPipe: "/tmp/shairport-sync-metadata",
+		alignment: "center"
 	},
 
 	// Define start sequence.
@@ -41,9 +42,11 @@ Module.register("MMM-ShairportMetadata",{
 	getDom: function() {
 		var wrapper = document.createElement("div");
 		wrapper.className = this.config.classes ? this.config.classes : "small";
-		wrapper.setAttribute("style", "text-align:center;")
+		alignment = (this.config.alignment == "left") ? "left" : ((this.config.alignment == "right") ? "right" : "center");
+		wrapper.setAttribute("style", "text-align:" + alignment + ";")
 		
 		if (!this.metadata || (Object.keys(this.metadata).length == 0)){
+			wrapper.setAttribute("style", "display:none;");
 			return wrapper;
 		}
 		

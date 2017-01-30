@@ -12,7 +12,8 @@ modules: [
     module: 'MMM-ShairportMetadata',
     position: 'bottom_left',
     config: {
-      metadataPipe: "/tmp/shairport-sync-metadata" // location of pipe with shairport-sync metadata
+      metadataPipe: "/tmp/shairport-sync-metadata", // location of pipe with shairport-sync metadata
+	  alignment: "center",	// Possible values [left|right|center]. Default: center
     }
   },
 ]

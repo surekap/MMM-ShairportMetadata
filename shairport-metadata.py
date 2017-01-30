@@ -49,6 +49,7 @@ if __name__ == "__main__":
         if not line.startswith("<item>"):
             continue
         typ, code, length = start_item(line)
+        
         data = ""
         if (length > 0):
             r = start_data(sys.stdin.readline())
@@ -78,6 +79,10 @@ if __name__ == "__main__":
             #    metadata['IP'] = data
         
         if (typ == "ssnc" and code == "pfls"):
+            metadata = {}
+            print json.dumps({})
+            sys.stdout.flush()
+        if (typ == "ssnc" and code == "pend"):
             metadata = {}
             print json.dumps({})
             sys.stdout.flush()
