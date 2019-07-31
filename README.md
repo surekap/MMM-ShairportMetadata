@@ -1,5 +1,5 @@
 # MMM-ShairportMetadata
-A module to integrate AirTunes metadata coming via <a href="https://github.com/mikebrady/shairport-sync">`shairport-sync`</a> into the <a href="https://github.com/MichMich/MagicMirror">MagicMirror</a>. Does not work with video or mirroring.
+A module to integrate AirPlay metadata coming via <a href="https://github.com/mikebrady/shairport-sync">`shairport-sync`</a> into the <a href="https://github.com/MichMich/MagicMirror">MagicMirror</a>. This plugin does not work with video streaming or screen mirroring.
 
 ## Preview
 ![preview](preview.jpg)
@@ -20,7 +20,7 @@ modules: [
 ````
 
 ## Integration with shairport-sync
-Example `shairport-sync` configuration:
+Example configuration for `shairport-sync`:
 ````javascript
 metadata =
 {
