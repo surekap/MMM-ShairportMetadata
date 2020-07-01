@@ -53,7 +53,7 @@ Module.register("MMM-ShairportMetadata",{
 		var remain = Math.floor((sec % 60));
 		remain = (remain.toString().length > 1) ? remain : "0" + (remain);
 		return (min + ":" + remain);
-	}
+	},
 
 
 	// Override dom generator.
