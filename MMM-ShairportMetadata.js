@@ -45,7 +45,7 @@ Module.register("MMM-ShairportMetadata",{
 
 	//convert RTP timestamps to seconds (assuming music is 44100hz or 44khz)
 	getSec: function(timestamp) {
-		return parseInt(imestamp) / 44100;
+		return parseInt(timestamp) / 44100;
 	},
 
 	secToTime: function(sec) {
