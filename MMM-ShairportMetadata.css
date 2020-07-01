@@ -1,0 +1,17 @@
+.MMM-ShairportMetadata progress[value] {
+	-webkit-appearance: none;
+   	appearance: none;
+    color: red;
+
+    border: 1px solid white;
+    border-radius: 10px;
+    height: 5px;
+}
+
+.MMM-ShairportMetadata progress[value]::-webkit-progress-bar {
+	background-color: black;
+}
+
+.MMM-ShairportMetadata progress[value]::-webkit-progress-value {
+	background-color: white;
+}
