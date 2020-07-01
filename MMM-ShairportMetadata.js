@@ -139,4 +139,10 @@ Module.register("MMM-ShairportMetadata",{
 		return wrapper;
 	},
 
+	getStyles: function() {
+		return [
+			"MMM-SE-Reputation.css",
+		];
+	},
+
 });
