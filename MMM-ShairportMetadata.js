@@ -83,7 +83,6 @@ Module.register("MMM-ShairportMetadata",{
 		// current /44khz - start/44khz = 0.4 s
 		if (this.prgr.length > 0) {
 			let prData = this.prgr;
-			0.4 / 160 = percentage
 			let start   = this.getSec(prData[0]);
 			let current = this.getSec(prData[1]);
 			let end     = this.getSec(prData[2]);
