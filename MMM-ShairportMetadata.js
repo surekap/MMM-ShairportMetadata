@@ -67,6 +67,7 @@ Module.register("MMM-ShairportMetadata",{
 
 	// Override dom generator.
 	getDom: function() {
+		var self = this;
 		var wrapper = document.createElement("div");
 		wrapper.className = this.config.classes ? this.config.classes : "small";
 		alignment = (this.config.alignment == "left") ? "left" : ((this.config.alignment == "right") ? "right" : "center");
@@ -77,7 +78,7 @@ Module.register("MMM-ShairportMetadata",{
 			return wrapper;
 		}
 
-		if(this.player && this.player != "") {
+		if(this.player != "") {
 			self.data.header =  this.player + " is now playing"
 		} else {
 			self.data.header = "Somebody is now playing";
