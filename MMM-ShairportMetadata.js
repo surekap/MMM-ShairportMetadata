@@ -22,21 +22,30 @@ Module.register("MMM-ShairportMetadata",{
 		// Schedule update timer.
 		var self = this;
 		var progress = [];
+		var player = "Somebody";
 		this.sendSocketNotification('CONFIG', this.config);
 		setInterval(() => {
-			this.updateDom(1000);
+			this.updateDom(0);
 		}, 1000);
 	},
 
 	socketNotificationReceived: function(notification, payload){
 		if(notification === 'DATA'){
+			//console.log(payload);
+			if (payload.hasOwnProperty('snam')) {
+				console.log("snam? : " + payload['snam']);
+				this.player = payload['snam'];
+			}
+
 			if (payload.hasOwnProperty('image')){
 				this.albumart = payload['image'];
-			}else{
+			} else {
 				this.metadata = payload;
-				if (payload.hasOwnProperty('prgr')) {
-					this.progress = payload['prgr'].split("/");
-				}
+				 if (payload.hasOwnProperty('prgr') && payload['prgr'] != 'undefined') {
+					 console.log("has progress");
+					 console.log(payload['prgr'].split("/"));
+					 this.progress = payload['prgr'].split("/");
+				 }
 
 			}
 			this.updateDom(1000);
@@ -68,11 +77,17 @@ Module.register("MMM-ShairportMetadata",{
 			return wrapper;
 		}
 
+		if(this.player && this.player != "") {
+			self.data.header =  this.player + " is now playing"
+		} else {
+			self.data.header = "Somebody is now playing";
+		}
+
 		metadata = document.createElement("div");
 		imgtag = document.createElement("img");
 		if (this.albumart){
 			imgtag.setAttribute('src', this.albumart);
-			imgtag.setAttribute('style', "width:200px;height:200px;");
+			imgtag.setAttribute('style', "width:150px;height:150px;");
 		}
 		imgtag.className = 'albumart';
 		metadata.appendChild(imgtag);
@@ -81,23 +96,30 @@ Module.register("MMM-ShairportMetadata",{
 		//"ssnc" "prgr": "1484695203/1484713042/1491729059".
 		// end / 44khz - start/44khz = 160 s
 		// current /44khz - start/44khz = 0.4 s
-		if (this.prgr.length > 0) {
-			let prData = this.prgr;
+		if (this.progress && this.progress.length > 0) {
+			let prData = this.progress;
+			//console.log("data: " + prData);
 			let start   = this.getSec(prData[0]);
 			let current = this.getSec(prData[1]);
 			let end     = this.getSec(prData[2]);
 			let prgrInSec = current - start;
+			//console.log("start: " + start + "; current" + current);
+			//console.log("pr in sec" + prgrInSec);
 			let songLength = end - start;
 			let prgrInPer = (prgrInSec / songLength) * 100;
-			prData[1] = prData[1] + 44100; //adds 1 sec of progress
+			prData[1] = (parseInt(prData[1]) + 44100).toString(); //adds 1 sec of progress
 			//sets data for next loop
-			this.prgr = prData;
+			this.progress = prData;
+			let break1 = document.createElement('br');
+			metadata.appendChild(break1);
 			var progressEl = document.createElement('progress');
 			progressEl.setAttribute("value", prgrInSec);
 			progressEl.setAttribute("max", songLength);
 			progressEl.id = "musicProgress";
 			metadata.appendChild(progressEl);
 
+			let break2 = document.createElement('br');
+			metadata.appendChild(break2);
 			var prgrLabel = document.createElement("label");
 			prgrLabel.setAttribute("for", "musicProgress");
 			prgrLabel.innerHTML = this.secToTime(prgrInSec) + " - " + this.secToTime(songLength);
@@ -108,8 +130,10 @@ Module.register("MMM-ShairportMetadata",{
 
 
 		if (this.metadata['Title'] && this.metadata['Title'].length > 30){
-			titletag = document.createElement("marquee");
-			titletag.setAttribute('loop', '-1');
+			// titletag = document.createElement("marquee");
+			// titletag.setAttribute('loop', '-1');
+			titletag = document.createElement('div');
+			titletag.style.fontSize = "10px";
 		}else{
 			titletag = document.createElement("div");
 		}
@@ -124,8 +148,10 @@ Module.register("MMM-ShairportMetadata",{
 			txt = this.metadata['Artist'] + " - " + this.metadata['Album Name']
 		}
 		if (txt.length > 50){
-			artisttag = document.createElement('marquee');
-			artisttag.setAttribute("loop", '-1')
+			// artisttag = document.createElement('marquee');
+			// artisttag.setAttribute("loop", '-1')
+			artisttag = document.createElement('div');
+			artisttag.style.fontSize = "10px";
 		}else{
 			artisttag = document.createElement('div');
 		}
@@ -140,7 +166,7 @@ Module.register("MMM-ShairportMetadata",{
 
 	getStyles: function() {
 		return [
-			"MMM-SE-Reputation.css",
+			"MMM-ShairportMetadata.css",
 		];
 	},
 

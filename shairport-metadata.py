@@ -77,6 +77,8 @@ if __name__ == "__main__":
             #    metadata['Sort as'] = data
             #elif (code == "clip"):
             #    metadata['IP'] = data
+        if (typ == "ssnc" and code == "snam"):
+            metadata['snam'] = data
         if (typ == "ssnc" and code == "prgr"):
             metadata['prgr'] = data
         if (typ == "ssnc" and code == "pfls"):
@@ -84,9 +86,12 @@ if __name__ == "__main__":
             print json.dumps({})
             sys.stdout.flush()
         if (typ == "ssnc" and code == "pend"):
-            metadata = {}
-            print json.dumps({})
-            sys.stdout.flush()
+            metadata['pause'] = True
+            ##metadata = {}
+            #print json.dumps({})
+            #sys.stdout.flush()
+        if (typ == "ssnc" and code == "prsm"):
+            metadata['pause'] = False
         if (typ == "ssnc" and code == "PICT"):
             if (len(data) == 0):
                 print json.dumps({"image": ""})

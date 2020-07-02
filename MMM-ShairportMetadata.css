@@ -2,7 +2,7 @@
 	-webkit-appearance: none;
    	appearance: none;
     color: red;
-
+		width: 150px;
     border: 1px solid white;
     border-radius: 10px;
     height: 5px;
