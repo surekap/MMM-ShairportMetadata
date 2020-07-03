@@ -23,29 +23,43 @@ Module.register("MMM-ShairportMetadata",{
 		var self = this;
 		var progress = [];
 		var player = "Somebody";
+		var playing = null;
 		this.sendSocketNotification('CONFIG', this.config);
 		setInterval(() => {
-			this.updateDom(0);
+			this.updateDom(1000);
 		}, 1000);
 	},
 
 	socketNotificationReceived: function(notification, payload){
 		if(notification === 'DATA'){
-			//console.log(payload);
+			console.log("payload");
+			console.log(payload);
+
 			if (payload.hasOwnProperty('snam')) {
-				console.log("snam? : " + payload['snam']);
+				console.log("snam? : " + JSON.stringify(payload['snam']));
 				this.player = payload['snam'];
 			}
+			if ((Object.keys(payload).length == 0)) {
+			 this.playing = (this.playing == false) ? false : null;
+		  }
+
+			if ((Object.keys(payload).length > 0)){
+			 this.playing = true
+		 }
+
+		 if (payload.hasOwnProperty('pause')) {
+		 	console.log("pause? : " + payload['pause']);
+		 	this.playing = !payload['pause'];
+		 }
 
 			if (payload.hasOwnProperty('image')){
 				this.albumart = payload['image'];
 			} else {
 				this.metadata = payload;
 				 if (payload.hasOwnProperty('prgr') && payload['prgr'] != 'undefined') {
-					 console.log("has progress");
-					 console.log(payload['prgr'].split("/"));
 					 this.progress = payload['prgr'].split("/");
 				 }
+
 
 			}
 			this.updateDom(1000);
@@ -78,53 +92,52 @@ Module.register("MMM-ShairportMetadata",{
 			return wrapper;
 		}
 
-		if(this.player != "") {
-			self.data.header =  this.player + " is now playing"
-		} else {
-			self.data.header = "Somebody is now playing";
-		}
+		self.data.header = "Somebody is now playing";
 
 		metadata = document.createElement("div");
 		imgtag = document.createElement("img");
 		if (this.albumart){
 			imgtag.setAttribute('src', this.albumart);
-			imgtag.setAttribute('style', "width:150px;height:150px;");
+			imgtag.setAttribute('style', "width:100px;height:100px;");
 		}
 		imgtag.className = 'albumart';
 		metadata.appendChild(imgtag);
-		//									start 		current			end
-		//2:40 = 160 sec
-		//"ssnc" "prgr": "1484695203/1484713042/1491729059".
-		// end / 44khz - start/44khz = 160 s
-		// current /44khz - start/44khz = 0.4 s
-		if (this.progress && this.progress.length > 0) {
+
+		let break1 = document.createElement('br');
+		metadata.appendChild(break1);
+		var progressEl = document.createElement('progress');
+		progressEl.id = "musicProgress";
+		metadata.appendChild(progressEl);
+
+		let break2 = document.createElement('br');
+		metadata.appendChild(break2);
+		var prgrLabel = document.createElement("label");
+		prgrLabel.setAttribute("for", "musicProgress");
+		prgrLabel.id = "progressLabel";
+		prgrLabel.innerHTML = "0:00 - 0:00";
+		metadata.appendChild(prgrLabel);
+
+
+		if (this.progress && this.progress.length > 0 && this.playing == true) {
 			let prData = this.progress;
-			//console.log("data: " + prData);
 			let start   = this.getSec(prData[0]);
 			let current = this.getSec(prData[1]);
 			let end     = this.getSec(prData[2]);
 			let prgrInSec = current - start;
-			//console.log("start: " + start + "; current" + current);
-			//console.log("pr in sec" + prgrInSec);
-			let songLength = end - start;
-			let prgrInPer = (prgrInSec / songLength) * 100;
-			prData[1] = (parseInt(prData[1]) + 44100).toString(); //adds 1 sec of progress
-			//sets data for next loop
-			this.progress = prData;
-			let break1 = document.createElement('br');
-			metadata.appendChild(break1);
-			var progressEl = document.createElement('progress');
-			progressEl.setAttribute("value", prgrInSec);
-			progressEl.setAttribute("max", songLength);
-			progressEl.id = "musicProgress";
-			metadata.appendChild(progressEl);
 
-			let break2 = document.createElement('br');
-			metadata.appendChild(break2);
-			var prgrLabel = document.createElement("label");
-			prgrLabel.setAttribute("for", "musicProgress");
+			let songLength = end - start;
+			prData[1] = (parseInt(prData[1]) + 44100).toString(); //adds 1 sec of progress
+			this.progress = prData;
+
+			var progEl = document.getElementById('musicProgress');
+			if (prgrInSec > songLength) {
+				prgrInSec = songLength;
+			}
+			progEl.setAttribute("value", prgrInSec);
+			progEl.setAttribute("max", songLength);
+
+			var progLbl = document.getElementById('progressLabel');
 			prgrLabel.innerHTML = this.secToTime(prgrInSec) + " - " + this.secToTime(songLength);
-			metadata.appendChild(prgrLabel);
 		}
 
 

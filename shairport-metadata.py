@@ -86,11 +86,12 @@ if __name__ == "__main__":
             print json.dumps({})
             sys.stdout.flush()
         if (typ == "ssnc" and code == "pend"):
-            metadata['pause'] = True
-            ##metadata = {}
-            #print json.dumps({})
-            #sys.stdout.flush()
+            metadata = {}
+            print json.dumps({})
+            sys.stdout.flush()
         if (typ == "ssnc" and code == "prsm"):
+            metadata['pause'] = False
+        if (typ == "ssnc" and code == "pbeg"):
             metadata['pause'] = False
         if (typ == "ssnc" and code == "PICT"):
             if (len(data) == 0):
