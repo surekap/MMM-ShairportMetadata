@@ -24,33 +24,33 @@ Module.register("MMM-ShairportMetadata",{
 		var progress = [];
 		var player = "Somebody";
 		var playing = null;
+		var lastUpdate = new Date().getTime() / 1000;
 		this.sendSocketNotification('CONFIG', this.config);
 		setInterval(() => {
-			this.updateDom(1000);
+			this.updateDom(0);
 		}, 1000);
 	},
 
 	socketNotificationReceived: function(notification, payload){
-		if(notification === 'DATA'){
-			console.log("payload");
-			console.log(payload);
+		if(notification === 'DATA') {
+			//console.log("Some data has arrived");
+			this.lastUpdate = new Date().getTime() / 1000;
 
-			if (payload.hasOwnProperty('snam')) {
-				console.log("snam? : " + JSON.stringify(payload['snam']));
-				this.player = payload['snam'];
-			}
 			if ((Object.keys(payload).length == 0)) {
-			 this.playing = (this.playing == false) ? false : null;
+				this.playing = (this.playing == false) ? false : null;
 		  }
-
-			if ((Object.keys(payload).length > 0)){
-			 this.playing = true
-		 }
+			//console.log("playing2" + this.playing);
+			if ((Object.keys(payload).length > 0)) {
+				this.playing = true
+		  }
+			//console.log("playing3");
 
 		 if (payload.hasOwnProperty('pause')) {
-		 	console.log("pause? : " + payload['pause']);
+		 	//console.log("pause? : " + payload['pause']);
 		 	this.playing = !payload['pause'];
 		 }
+
+		 //console.log("playing: " + this.playing + "; metaLength: " + Object.keys(payload).length);
 
 			if (payload.hasOwnProperty('image')){
 				this.albumart = payload['image'];
@@ -59,8 +59,6 @@ Module.register("MMM-ShairportMetadata",{
 				 if (payload.hasOwnProperty('prgr') && payload['prgr'] != 'undefined') {
 					 this.progress = payload['prgr'].split("/");
 				 }
-
-
 			}
 			this.updateDom(1000);
 		}
@@ -78,6 +76,19 @@ Module.register("MMM-ShairportMetadata",{
 		return (min + ":" + remain);
 	},
 
+	shouldHide: function() {
+		console.log("should hide?");
+		let now = new Date().getTime() / 1000;
+		//console.log("nu: " + now + "; last update: " + (this.lastUpdate) + "; done at: " + (this.lastUpdate + 1 * 60));
+		if (now > (this.lastUpdate + 1 * 60)) {
+			//console.log("should stop");
+			return true;
+		} else {
+			return false;
+			//console.log("should not stop");
+		}
+	},
+
 
 	// Override dom generator.
 	getDom: function() {
@@ -87,7 +98,7 @@ Module.register("MMM-ShairportMetadata",{
 		alignment = (this.config.alignment == "left") ? "left" : ((this.config.alignment == "right") ? "right" : "center");
 		wrapper.setAttribute("style", "text-align:" + alignment + ";")
 
-		if (!this.metadata || (Object.keys(this.metadata).length == 0)){
+		if ((!this.metadata || (Object.keys(this.metadata).length == 0)) && (!this.progress && this.playing == false)){
 			wrapper.setAttribute("style", "display:none;");
 			return wrapper;
 		}
@@ -103,14 +114,12 @@ Module.register("MMM-ShairportMetadata",{
 		imgtag.className = 'albumart';
 		metadata.appendChild(imgtag);
 
-		let break1 = document.createElement('br');
-		metadata.appendChild(break1);
+		metadata.appendChild(document.createElement('br'));
 		var progressEl = document.createElement('progress');
 		progressEl.id = "musicProgress";
 		metadata.appendChild(progressEl);
 
-		let break2 = document.createElement('br');
-		metadata.appendChild(break2);
+		metadata.appendChild(document.createElement('br'));
 		var prgrLabel = document.createElement("label");
 		prgrLabel.setAttribute("for", "musicProgress");
 		prgrLabel.id = "progressLabel";
@@ -119,6 +128,7 @@ Module.register("MMM-ShairportMetadata",{
 
 
 		if (this.progress && this.progress.length > 0 && this.playing == true) {
+			//console.log("DOM: Just playing");
 			let prData = this.progress;
 			let start   = this.getSec(prData[0]);
 			let current = this.getSec(prData[1]);
@@ -129,15 +139,48 @@ Module.register("MMM-ShairportMetadata",{
 			prData[1] = (parseInt(prData[1]) + 44100).toString(); //adds 1 sec of progress
 			this.progress = prData;
 
-			var progEl = document.getElementById('musicProgress');
-			if (prgrInSec > songLength) {
+			var progEl = progressEl;
+			if (prgrInSec >= songLength) {
+				if (this.shouldHide()) {
+					//song is already over and it has been 2 minutes without update
+					wrapper.setAttribute("style", "display:none;");
+					return wrapper;
+				}
 				prgrInSec = songLength;
 			}
 			progEl.setAttribute("value", prgrInSec);
 			progEl.setAttribute("max", songLength);
 
-			var progLbl = document.getElementById('progressLabel');
 			prgrLabel.innerHTML = this.secToTime(prgrInSec) + " - " + this.secToTime(songLength);
+		} else if (this.playing == null && this.progress) { //pauze
+			//console.log("DOM: Just Pause");
+
+			let prData = this.progress;
+			let start   = this.getSec(prData[0]);
+			let current = this.getSec(prData[1]);
+			let end     = this.getSec(prData[2]);
+			let prgrInSec = current - start;
+
+			let songLength = end - start;
+			this.progress = prData;
+
+			var progEl = progressEl;
+			if (prgrInSec >= songLength) {
+				if (this.shouldHide()) {
+					//song is already over and it has been 2 minutes without update
+					wrapper.setAttribute("style", "display:none;");
+					return wrapper;
+				}
+				prgrInSec = songLength;
+			}
+			progEl.setAttribute("value", prgrInSec);
+			progEl.setAttribute("max", songLength);
+
+			prgrLabel.innerHTML = this.secToTime(prgrInSec) + " - " + this.secToTime(songLength);
+		} else {
+			//console.log("DOM: Just ?");
+			wrapper.setAttribute("style", "display:none;");
+			return wrapper;
 		}
 
 
