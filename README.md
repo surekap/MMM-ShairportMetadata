@@ -3,7 +3,8 @@ A module to integrate AirPlay metadata coming via <a href="https://github.com/mi
 
 ## Preview
 ![preview](preview.jpg)
-This version now includes a progress bar.
+
+This version finally includes a progress bar!
 
 ## Using the module
 Add `MMM-ShairportMetadata` module to the `modules` array in the `config/config.js` file:
