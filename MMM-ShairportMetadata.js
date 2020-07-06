@@ -5,6 +5,10 @@
  *
  * By Prateek Sureka <surekap@gmail.com>
  * MIT Licensed.
+ *
+ * Forked by ChielChiel
+ * Who made the progressbar
+ *
  */
 
 Module.register("MMM-ShairportMetadata",{
@@ -22,7 +26,6 @@ Module.register("MMM-ShairportMetadata",{
 		// Schedule update timer.
 		var self = this;
 		var progress = [];
-		var player = "Somebody";
 		var playing = null;
 		var lastUpdate = new Date().getTime() / 1000;
 		this.sendSocketNotification('CONFIG', this.config);
@@ -33,24 +36,18 @@ Module.register("MMM-ShairportMetadata",{
 
 	socketNotificationReceived: function(notification, payload){
 		if(notification === 'DATA') {
-			//console.log("Some data has arrived");
 			this.lastUpdate = new Date().getTime() / 1000;
 
 			if ((Object.keys(payload).length == 0)) {
 				this.playing = (this.playing == false) ? false : null;
 		  }
-			//console.log("playing2" + this.playing);
 			if ((Object.keys(payload).length > 0)) {
 				this.playing = true
 		  }
-			//console.log("playing3");
 
 		 if (payload.hasOwnProperty('pause')) {
-		 	//console.log("pause? : " + payload['pause']);
 		 	this.playing = !payload['pause'];
 		 }
-
-		 //console.log("playing: " + this.playing + "; metaLength: " + Object.keys(payload).length);
 
 			if (payload.hasOwnProperty('image')){
 				this.albumart = payload['image'];
@@ -65,10 +62,13 @@ Module.register("MMM-ShairportMetadata",{
 	},
 
 	//convert RTP timestamps to seconds (assuming music is 44100hz or 44khz)
+	//As stated in this section https://github.com/mikebrady/shairport-sync#more-information
+	//"The default is 44,100 samples per second / 16 bits"
 	getSec: function(timestamp) {
 		return parseInt(timestamp) / 44100;
 	},
 
+	//convert seconds to normal minute:seconds format like: 201 --> 3:21
 	secToTime: function(sec) {
 		let min = Math.floor(sec / 60);
 		var remain = Math.floor((sec % 60));
@@ -76,17 +76,11 @@ Module.register("MMM-ShairportMetadata",{
 		return (min + ":" + remain);
 	},
 
+	//determines whether the player should hide if there wasn't any update in last 2 minutes
+	//probably a bug then.
 	shouldHide: function() {
-		console.log("should hide?");
 		let now = new Date().getTime() / 1000;
-		//console.log("nu: " + now + "; last update: " + (this.lastUpdate) + "; done at: " + (this.lastUpdate + 1 * 60));
-		if (now > (this.lastUpdate + 1 * 60)) {
-			//console.log("should stop");
-			return true;
-		} else {
-			return false;
-			//console.log("should not stop");
-		}
+		return (now > (this.lastUpdate + 2 * 60)) : true ? false;
 	},
 
 
@@ -114,12 +108,15 @@ Module.register("MMM-ShairportMetadata",{
 		imgtag.className = 'albumart';
 		metadata.appendChild(imgtag);
 
+		//create a break below the image
 		metadata.appendChild(document.createElement('br'));
+		//create the progressbar
 		var progressEl = document.createElement('progress');
 		progressEl.id = "musicProgress";
 		metadata.appendChild(progressEl);
 
 		metadata.appendChild(document.createElement('br'));
+		//create the label for the progress
 		var prgrLabel = document.createElement("label");
 		prgrLabel.setAttribute("for", "musicProgress");
 		prgrLabel.id = "progressLabel";
@@ -128,8 +125,9 @@ Module.register("MMM-ShairportMetadata",{
 
 
 		if (this.progress && this.progress.length > 0 && this.playing == true) {
-			//console.log("DOM: Just playing");
+			//get the progress
 			let prData = this.progress;
+			//get the start, current play frame and the end of the song in seconds
 			let start   = this.getSec(prData[0]);
 			let current = this.getSec(prData[1]);
 			let end     = this.getSec(prData[2]);
@@ -140,6 +138,8 @@ Module.register("MMM-ShairportMetadata",{
 			this.progress = prData;
 
 			var progEl = progressEl;
+			//Make sure that, when there's a bug or something else
+			//That the 'progress' won't go past the 'end' of the song.
 			if (prgrInSec >= songLength) {
 				if (this.shouldHide()) {
 					//song is already over and it has been 2 minutes without update
@@ -148,13 +148,12 @@ Module.register("MMM-ShairportMetadata",{
 				}
 				prgrInSec = songLength;
 			}
+			//update the progressbar
 			progEl.setAttribute("value", prgrInSec);
 			progEl.setAttribute("max", songLength);
 
 			prgrLabel.innerHTML = this.secToTime(prgrInSec) + " - " + this.secToTime(songLength);
-		} else if (this.playing == null && this.progress) { //pauze
-			//console.log("DOM: Just Pause");
-
+		} else if (this.playing == null && this.progress) { //song was paused
 			let prData = this.progress;
 			let start   = this.getSec(prData[0]);
 			let current = this.getSec(prData[1]);
@@ -177,8 +176,7 @@ Module.register("MMM-ShairportMetadata",{
 			progEl.setAttribute("max", songLength);
 
 			prgrLabel.innerHTML = this.secToTime(prgrInSec) + " - " + this.secToTime(songLength);
-		} else {
-			//console.log("DOM: Just ?");
+		} else { //nothing is playing
 			wrapper.setAttribute("style", "display:none;");
 			return wrapper;
 		}
@@ -187,8 +185,8 @@ Module.register("MMM-ShairportMetadata",{
 
 
 		if (this.metadata['Title'] && this.metadata['Title'].length > 30){
-			// titletag = document.createElement("marquee");
-			// titletag.setAttribute('loop', '-1');
+			//Because the dom regenerates every second. The marque won't scroll
+			//I wasn't able to fix that
 			titletag = document.createElement('div');
 			titletag.style.fontSize = "10px";
 		}else{
@@ -205,8 +203,8 @@ Module.register("MMM-ShairportMetadata",{
 			txt = this.metadata['Artist'] + " - " + this.metadata['Album Name']
 		}
 		if (txt.length > 50){
-			// artisttag = document.createElement('marquee');
-			// artisttag.setAttribute("loop", '-1')
+			//Because the dom regenerates every second. The marque won't scroll
+			//I wasn't able to fix that
 			artisttag = document.createElement('div');
 			artisttag.style.fontSize = "10px";
 		}else{
@@ -221,6 +219,7 @@ Module.register("MMM-ShairportMetadata",{
 		return wrapper;
 	},
 
+	//Added css file to style the progressbar
 	getStyles: function() {
 		return [
 			"MMM-ShairportMetadata.css",
