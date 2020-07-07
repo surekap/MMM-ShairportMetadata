@@ -4,24 +4,27 @@ A module to integrate AirPlay metadata coming via <a href="https://github.com/mi
 ## Preview
 ![preview](preview.jpg)
 
+This version finally includes a progress bar!
+
 ## Using the module
 Add `MMM-ShairportMetadata` module to the `modules` array in the `config/config.js` file:
-````javascript
+``` javascript
 modules: [
   {
     module: 'MMM-ShairportMetadata',
     position: 'bottom_left',
+    header: 'Now playing',
     config: {
       metadataPipe: "/tmp/shairport-sync-metadata", // location of pipe with shairport-sync metadata
 	  alignment: "center",	// Possible values [left|right|center]. Default: center
     }
   },
 ]
-````
+```
 
 ## Integration with shairport-sync
 Example configuration for `shairport-sync`:
-````javascript
+``` javascript
 metadata =
 {
 		enabled = "yes"; // set to yes to get Shairport Sync to solicit metadata from the source and to pass it on via a pipe
@@ -33,4 +36,4 @@ metadata =
 //      socket_msglength = 65000; // the maximum packet size for any UDP metadata. This will be clipped to be between 500 or 65000. The default is 500.
 };
 
-````
+```

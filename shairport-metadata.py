@@ -29,7 +29,7 @@ def read_data(line, length):
     return data
 
 def guessImageMime(magic):
-    
+
     if magic.startswith('\xff\xd8'):
         return 'image/jpeg'
     elif magic.startswith('\x89PNG\r\n\x1a\r'):
@@ -38,7 +38,7 @@ def guessImageMime(magic):
         return "image/jpg"
 
 if __name__ == "__main__":
-    
+
     metadata = {}
     fi = sys.stdin
     while True:
@@ -49,15 +49,15 @@ if __name__ == "__main__":
         if not line.startswith("<item>"):
             continue
         typ, code, length = start_item(line)
-        
+
         data = ""
         if (length > 0):
             r = start_data(sys.stdin.readline())
             if (r == -1):
                 continue
             data = read_data(sys.stdin.readline(), length)
-                
-        # Everything read    
+
+        # Everything read
         if (typ == "core"):
             if (code == "asal"):
                 metadata['Album Name'] = data
@@ -77,7 +77,10 @@ if __name__ == "__main__":
             #    metadata['Sort as'] = data
             #elif (code == "clip"):
             #    metadata['IP'] = data
-        
+        if (typ == "ssnc" and code == "snam"):
+            metadata['snam'] = data
+        if (typ == "ssnc" and code == "prgr"):
+            metadata['prgr'] = data
         if (typ == "ssnc" and code == "pfls"):
             metadata = {}
             print json.dumps({})
@@ -86,6 +89,10 @@ if __name__ == "__main__":
             metadata = {}
             print json.dumps({})
             sys.stdout.flush()
+        if (typ == "ssnc" and code == "prsm"):
+            metadata['pause'] = False
+        if (typ == "ssnc" and code == "pbeg"):
+            metadata['pause'] = False
         if (typ == "ssnc" and code == "PICT"):
             if (len(data) == 0):
                 print json.dumps({"image": ""})
@@ -97,4 +104,3 @@ if __name__ == "__main__":
             print json.dumps(metadata)
             sys.stdout.flush()
             metadata = {}
-        
