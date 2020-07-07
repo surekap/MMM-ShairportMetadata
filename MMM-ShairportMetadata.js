@@ -22,7 +22,8 @@ Module.register("MMM-ShairportMetadata",{
 	// Define start sequence.
 	start: function() {
 		Log.info("Starting module: " + this.name);
-
+		var self = this;
+		self.data.header = "Nothing playing";
 		// Schedule update timer.
 		var self = this;
 		var progress = [];
@@ -80,7 +81,7 @@ Module.register("MMM-ShairportMetadata",{
 	//probably a bug then.
 	shouldHide: function() {
 		let now = new Date().getTime() / 1000;
-		return (now > (this.lastUpdate + 2 * 60)) : true ? false;
+		return (now > (this.lastUpdate + 2 * 60)) ? true : false;
 	},
 
 

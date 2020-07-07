@@ -13,6 +13,7 @@ modules: [
   {
     module: 'MMM-ShairportMetadata',
     position: 'bottom_left',
+    header: 'Now playing',
     config: {
       metadataPipe: "/tmp/shairport-sync-metadata", // location of pipe with shairport-sync metadata
 	  alignment: "center",	// Possible values [left|right|center]. Default: center
