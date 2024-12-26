@@ -5,8 +5,8 @@ import json
 def start_item(line):
     regex = r"<item><type>(([A-Fa-f0-9]{2}){4})</type><code>(([A-Fa-f0-9]{2}){4})</code><length>(\d*)</length>"
     matches = re.findall(regex, line)
-    typ = matches[0][0].decode('hex')
-    code = matches[0][2].decode('hex')
+    typ = bytes.fromhex(matches[0][0]).decode('utf-8')
+    code = bytes.fromhex(matches[0][2]).decode('utf-8')
     length = int(matches[0][4])
     return (typ, code, length)
 
@@ -20,9 +20,9 @@ def start_data(line):
     return 0
 
 def read_data(line, length):
-    b64size = 4*((length+2)/3);
+    b64size = 4*((length+2)//3);
     try:
-        data = base64.b64decode(line[:b64size])
+        data = base64.b64decode(line[:b64size].encode())
     except TypeError:
         data = ""
         pass
@@ -30,9 +30,9 @@ def read_data(line, length):
 
 def guessImageMime(magic):
 
-    if magic.startswith('\xff\xd8'):
+    if magic.startswith(b'\xff\xd8'):
         return 'image/jpeg'
-    elif magic.startswith('\x89PNG\r\n\x1a\r'):
+    elif magic.startswith(b'\x89PNG\r\n\x1a\r'):
         return 'image/png'
     else:
         return "image/jpg"
@@ -60,15 +60,15 @@ if __name__ == "__main__":
         # Everything read
         if (typ == "core"):
             if (code == "asal"):
-                metadata['Album Name'] = data
+                metadata['Album Name'] = data.decode()
             elif (code == "asar"):
-                metadata['Artist'] = data
+                metadata['Artist'] = data.decode()
             #elif (code == "ascm"):
             #    metadata['Comment'] = data
             #elif (code == "asgn"):
             #    metadata['Genre'] = data
             elif (code == "minm"):
-                metadata['Title'] = data
+                metadata['Title'] = data.decode()
             #elif (code == "ascp"):
             #    metadata['Composer'] = data
             #elif (code == "asdt"):
@@ -78,16 +78,16 @@ if __name__ == "__main__":
             #elif (code == "clip"):
             #    metadata['IP'] = data
         if (typ == "ssnc" and code == "snam"):
-            metadata['snam'] = data
+            metadata['snam'] = data.decode()
         if (typ == "ssnc" and code == "prgr"):
-            metadata['prgr'] = data
+            metadata['prgr'] = data.decode()
         if (typ == "ssnc" and code == "pfls"):
             metadata = {}
-            print json.dumps({})
+            print(json.dumps({}))
             sys.stdout.flush()
         if (typ == "ssnc" and code == "pend"):
             metadata = {}
-            print json.dumps({})
+            print(json.dumps({}))
             sys.stdout.flush()
         if (typ == "ssnc" and code == "prsm"):
             metadata['pause'] = False
@@ -95,12 +95,12 @@ if __name__ == "__main__":
             metadata['pause'] = False
         if (typ == "ssnc" and code == "PICT"):
             if (len(data) == 0):
-                print json.dumps({"image": ""})
+                print(json.dumps({"image": ""}))
             else:
                 mime = guessImageMime(data)
-                print json.dumps({"image": "data:" + mime + ";base64," + base64.b64encode(data)})
+                print(json.dumps({"image": "data:" + mime + ";base64," + base64.b64encode(data).decode()}))
             sys.stdout.flush()
         if (typ == "ssnc" and code == "mden"):
-            print json.dumps(metadata)
+            print(json.dumps(metadata))
             sys.stdout.flush()
             metadata = {}
