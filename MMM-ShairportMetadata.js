@@ -26,6 +26,7 @@ Module.register("MMM-ShairportMetadata",{
 		self.data.header = "Nothing playing";
 		// Schedule update timer.
 		var self = this;
+		var playing_snam = null;
 		var progress = [];
 		var playing = null;
 		var lastUpdate = new Date().getTime() / 1000;
@@ -57,6 +58,10 @@ Module.register("MMM-ShairportMetadata",{
 				 if (payload.hasOwnProperty('prgr') && payload['prgr'] != 'undefined') {
 					 this.progress = payload['prgr'].split("/");
 				 }
+				if (this.metadata['Title'] == undefined) {
+					// assume disconnected
+					this.playing = false;
+				}
 			}
 			this.updateDom(1000);
 		}
@@ -98,7 +103,15 @@ Module.register("MMM-ShairportMetadata",{
 			return wrapper;
 		}
 
-		self.data.header = "Somebody is now playing";
+		if (this.metadata && Object.keys(this.metadata) && this.metadata['snam'] != undefined) {
+			this.playing_snam = this.metadata['snam'];
+		}
+
+		if (this.playing_snam != null) {
+			self.data.header = `${this.playing_snam} is now playing`;
+		} else {
+			self.data.header = "Now playing";
+		}
 
 		metadata = document.createElement("div");
 		imgtag = document.createElement("img");
@@ -179,6 +192,8 @@ Module.register("MMM-ShairportMetadata",{
 			prgrLabel.innerHTML = this.secToTime(prgrInSec) + " - " + this.secToTime(songLength);
 		} else { //nothing is playing
 			wrapper.setAttribute("style", "display:none;");
+			self.data.header = "Nothing playing";
+			this.playing_snam = null;
 			return wrapper;
 		}
 
