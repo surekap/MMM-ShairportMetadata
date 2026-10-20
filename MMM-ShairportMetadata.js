@@ -13,11 +13,10 @@
 Module.register("MMM-ShairportMetadata", {
 
   defaults: {
-    metadataPipe: "/tmp/shairport-sync-metadata",
+    mqttUrl: "mqtt://localhost:1883",
+    mqttTopic: "shairport",  // shairport-sync's mqtt "topic" setting
     alignment: "center",
-    sampleRate: 48000,
-    hideAfter: 0,        // 0 = never auto-hide; rely on the pend (disconnect) event only
-    showClient: true,
+    hideAfter: 0,        // seconds paused before hiding; 0 = hide only on disconnect
     leaveDurationMs: 470
   },
 
@@ -29,6 +28,7 @@ Module.register("MMM-ShairportMetadata", {
     this.stopped = true;
     this.baseSec = 0;
     this.anchor = this.now();
+    this.rate = 1;
     this.songLenSec = 0;
     this.lastUpdate = this.now();
     this.glowColor = "rgba(140,80,200,0.28)";
@@ -52,7 +52,7 @@ Module.register("MMM-ShairportMetadata", {
   now: function () { return new Date().getTime() / 1000; },
 
   elapsedNow: function () {
-    var e = this.playing ? this.baseSec + (this.now() - this.anchor) : this.baseSec;
+    var e = this.playing ? this.baseSec + (this.now() - this.anchor) * this.rate : this.baseSec;
     if (e < 0) { e = 0; }
     if (this.songLenSec > 0 && e > this.songLenSec) { e = this.songLenSec; }
     return e;
@@ -66,57 +66,42 @@ Module.register("MMM-ShairportMetadata", {
   },
 
   shouldHide: function () {
-    if (!this.config.hideAfter) { return false; }
+    // While playing there are no updates between tracks, so only time out pauses.
+    if (!this.config.hideAfter || this.playing) { return false; }
     return (this.now() > this.lastUpdate + this.config.hideAfter);
   },
 
   getHeader: function () { return ""; },
 
+  // payload: { state: "stopped" } or
+  // { state: "playing"|"paused", title, artist, album, duration, position, rate,
+  //   artwork? }  — times in seconds; artwork (data URL or null) only when it changed.
   socketNotificationReceived: function (notification, payload) {
-    if (notification !== "DATA") { return; }
+    if (notification !== "STATE") { return; }
     this.lastUpdate = this.now();
 
-    if (Object.keys(payload).length === 0) {
-      this.metadata = {};
-      this.beginLeave();
-      return;
-    }
-
-    if (payload.hasOwnProperty("image")) {
-      this.albumart = payload["image"] ? payload["image"] : null;
+    if (payload.hasOwnProperty("artwork")) {
+      this.albumart = payload.artwork || null;
       if (this.albumart) { this.extractGlow(this.albumart); }
       else { this.setGlow("rgba(140,80,200,0.28)"); }
       if (this.visible && this.artImg) { this.applyArt(); }
+    }
+
+    if (payload.state === "stopped") {
+      this.metadata = {};
+      this.beginLeave();
       return;
     }
 
     if (this.leaving) { this.cancelLeave(); }
     this.stopped = false;
 
-    var wasPlaying = this.playing;
-    var nowPlaying = payload.hasOwnProperty("pause") ? !payload["pause"] : true;
-    if (wasPlaying && !nowPlaying) {
-      this.baseSec = this.elapsedNow();
-      this.anchor = this.now();
-    } else if (!wasPlaying && nowPlaying) {
-      this.anchor = this.now();
-    }
-    this.playing = nowPlaying;
-
-    this.metadata = Object.assign(this.metadata || {}, payload);
-
-    if (payload.hasOwnProperty("prgr") && payload["prgr"] && payload["prgr"] !== "undefined") {
-      var p = String(payload["prgr"]).split("/");
-      if (p.length === 3) {
-        var start = parseInt(p[0], 10);
-        var current = parseInt(p[1], 10);
-        var end = parseInt(p[2], 10);
-        var rate = this.config.sampleRate || 48000;
-        this.baseSec = (current - start) / rate;
-        this.songLenSec = (end - start) / rate;
-        this.anchor = this.now();
-      }
-    }
+    this.metadata = payload;
+    this.playing = payload.state === "playing";
+    this.rate = payload.rate > 0 ? payload.rate : 1;
+    this.baseSec = payload.position || 0;
+    this.songLenSec = payload.duration || 0;
+    this.anchor = this.now();
 
     if (!this.visible) {
       this.appearing = true;
@@ -167,7 +152,7 @@ Module.register("MMM-ShairportMetadata", {
       this.refs.rightSpan.textContent = "paused";
     } else {
       this.refs.rightSpan.className = "";
-      this.refs.rightSpan.textContent = "-" + this.secToTime(Math.max(0, total - elapsed));
+      this.refs.rightSpan.textContent = total > 0 ? "-" + this.secToTime(Math.max(0, total - elapsed)) : "";
     }
   },
 
@@ -194,7 +179,7 @@ Module.register("MMM-ShairportMetadata", {
       requestAnimationFrame(function () {
         requestAnimationFrame(function () {
           if (!self.playing || !self.refs.fillEl) { return; }
-          self.refs.fillEl.style.transition = "transform " + remaining + "s linear";
+          self.refs.fillEl.style.transition = "transform " + (remaining / self.rate) + "s linear";
           self.refs.fillEl.style.transform = "scaleX(1)";
         });
       });
@@ -215,19 +200,15 @@ Module.register("MMM-ShairportMetadata", {
 
   updateCardContent: function () {
     if (!this.cardEl) { return; }
-    this.refs.titleEl.textContent = this.metadata["Title"] || "";
-    this.refs.artistEl.textContent = this.metadata["Artist"] || "";
-    var album = this.metadata["Album Name"] || "";
+    this.refs.titleEl.textContent = this.metadata.title || "";
+    this.refs.artistEl.textContent = this.metadata.artist || "";
+    var album = this.metadata.album || "";
     this.refs.albumEl.textContent = album;
     this.refs.albumEl.style.display = album ? "" : "none";
     this.applyArt();
     this.setGlow(this.glowColor);
-    if (this.config.showClient && this.metadata["client"]) {
-      this.refs.clientEl.textContent = this.metadata["client"];
-      this.refs.clientEl.style.display = "";
-    } else {
-      this.refs.clientEl.style.display = "none";
-    }
+    // No bar for live streams or senders that give no duration.
+    this.refs.progWrap.style.display = this.songLenSec > 0 ? "" : "none";
     this.renderLabels();
     this.syncBar();
   },
@@ -309,13 +290,10 @@ Module.register("MMM-ShairportMetadata", {
     times.appendChild(elapsedSpan); times.appendChild(rightSpan);
     card.appendChild(times);
 
-    var clientEl = document.createElement("div"); clientEl.className = "client-line";
-    card.appendChild(clientEl);
-
     this.cardEl = card;
     this.artWrap = artWrap;
     this.artImg = img;
-    this.refs = { titleEl, artistEl, albumEl, fillEl, elapsedSpan, rightSpan, clientEl };
+    this.refs = { titleEl, artistEl, albumEl, progWrap, fillEl, elapsedSpan, rightSpan };
 
     this.updateCardContent();
 

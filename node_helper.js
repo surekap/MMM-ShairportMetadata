@@ -6,58 +6,48 @@
  * MIT Licensed.
  */
 
-const NodeHelper = require('node_helper');
-const spawn = require('child_process').spawn;
+const NodeHelper = require("node_helper");
+const mqtt = require("mqtt");
+const ShairportState = require("./ShairportState");
 
 module.exports = NodeHelper.create({
 
-    start: function() {
-        console.log("Starting module: " + this.name);
-    },
+	start: function() {
+		console.log("Starting module: " + this.name);
+		this.state = new ShairportState();
+		this.client = null;
+	},
 
-    socketNotificationReceived: function(notification, payload) {
-        if (notification === "CONFIG") {
-			this.config = payload;
-			this.getData();
-        }
-    },
-	
-	/**
-	 * getData
-	 * Request data from the supplied URL and broadcast it to the MagicMirror module if it's received.
-	 */
-    getData: function() {
-		if (this.readableStream && this.readableStream != null){
-			// Do not start multiple processes
-			return;
-		}
-		
+	socketNotificationReceived: function(notification, payload) {
+		if (notification !== "CONFIG") { return; }
+		if (!this.client) { this.connect(payload); }
+		// A (re)loaded browser needs the full state, artwork included.
+		this.send(true);
+	},
+
+	connect: function(config) {
 		const self = this;
-		self.str_payload = "";
-		
-		this.readableStream = spawn(__dirname + "/shairport-metadata.sh", [this.config.metadataPipe, __dirname]);
-		this.readableStream.stderr.on('data', function(payload){
-			console.log("ERR: ", payload.toString());
+		const prefix = config.mqttTopic.replace(/\/+$/, "");
+
+		this.client = mqtt.connect(config.mqttUrl, { reconnectPeriod: 5000 });
+
+		this.client.on("connect", function() {
+			console.log(self.name + ": connected to " + config.mqttUrl);
+			self.client.subscribe([prefix + "/ssnc/#", prefix + "/core/#"]);
 		});
-		
-		this.readableStream.on('error', function(err){
-			console.log('an error occurred: ', err.toString());
+
+		this.client.on("error", function(err) {
+			console.log(self.name + ": MQTT error: " + err.message);
 		});
-		
-		this.readableStream.stdout.on('data', function(payload){
-			self.str_payload += payload.toString();
-			var lines = self.str_payload.split('\n')
-			self.str_payload = lines.pop();
-			for(var i = 0; i < lines.length; i++){
-				if (lines[i].length == 0){ continue; }
-				self.sendSocketNotification("DATA", JSON.parse(lines[i]));
-			}
+
+		this.client.on("message", function(topic, payload) {
+			const code = topic.slice(prefix.length + 1);
+			if (self.state.handle(code, payload, Date.now())) { self.send(false); }
 		});
-		
-		this.readableStream.stdout.on('close', function(){
-			self.readableStream.kill();
-			self.readableStream = null;
-		})
-    }
-	
+	},
+
+	send: function(withArtwork) {
+		this.sendSocketNotification("STATE", this.state.snapshot(Date.now(), withArtwork));
+	}
+
 });

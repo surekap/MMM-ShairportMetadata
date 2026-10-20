@@ -156,24 +156,6 @@
   font-style: italic;
 }
 
-/* ---------- Client line ---------- */
-.MMM-ShairportMetadata .client-line {
-  margin-top: 16px;
-  font-size: 13px;
-  font-weight: 400;
-  color: rgba(255,255,255,0.28);
-  letter-spacing: 0.3px;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.MMM-ShairportMetadata .client-line::before {
-  content: "▶";
-  font-size: 9px;
-  opacity: 0.5;
-}
-
 /* ============================================================
    Enter / leave animations  (backInLeft / fadeOutLeft style)
    Only transform + opacity (compositor-friendly). will-change

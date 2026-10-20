@@ -1,0 +1,14 @@
+{
+  "name": "mmm-shairportmetadata",
+  "version": "2.0.0",
+  "description": "MagicMirror module showing AirPlay now-playing info from shairport-sync over MQTT",
+  "main": "MMM-ShairportMetadata.js",
+  "scripts": {
+    "replay": "node test/replay.js"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "bplist-parser": "^0.3.2",
+    "mqtt": "^5.10.1"
+  }
+}
