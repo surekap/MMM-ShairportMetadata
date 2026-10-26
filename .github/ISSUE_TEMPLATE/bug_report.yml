@@ -1,0 +1,99 @@
+name: Bug report
+description: The module shows nothing, shows the wrong thing, or misbehaves
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting. This module is written without access to every setup, so the details below are what make a bug fixable. Please fill in every field.
+
+        Before you start: the module needs `npm install` in its folder only for MQTT and AirPlay 2 (`bplist-parser`, `mqtt`); the default pipe transport has no dependencies.
+  - type: input
+    id: magicmirror-version
+    attributes:
+      label: MagicMirror version
+      description: Printed in MagicMirror's log at start-up, or `"version"` in MagicMirror's `package.json`.
+      placeholder: "2.38.0"
+    validations:
+      required: true
+  - type: input
+    id: node-version
+    attributes:
+      label: Node version
+      description: Output of `node --version`, run as the user that runs MagicMirror.
+      placeholder: "v22.22.2"
+    validations:
+      required: true
+  - type: textarea
+    id: shairport-version
+    attributes:
+      label: shairport-sync version and build
+      description: The complete output of `shairport-sync -V`. It lists how it was built (for example `metadata`, `mqtt`, `AirPlay2`), which matters here.
+      render: shell
+    validations:
+      required: true
+  - type: input
+    id: os-version
+    attributes:
+      label: Operating system and version
+      description: For example Raspberry Pi OS Bookworm 64-bit (`cat /etc/os-release`), and the hardware.
+      placeholder: "Raspberry Pi OS Bookworm 64-bit on a Raspberry Pi 4"
+    validations:
+      required: true
+  - type: dropdown
+    id: transport
+    attributes:
+      label: Transport
+      options:
+        - pipe (default)
+        - mqtt
+    validations:
+      required: true
+  - type: input
+    id: sender
+    attributes:
+      label: What you play from
+      description: The device and app that sends the audio (and whether it is AirPlay or AirPlay 2).
+      placeholder: "iPhone, Apple Music, AirPlay 2"
+    validations:
+      required: true
+  - type: textarea
+    id: config
+    attributes:
+      label: The module's entry in config.js
+      render: javascript
+    validations:
+      required: true
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened, and what you expected
+    validations:
+      required: true
+  - type: textarea
+    id: capture
+    attributes:
+      label: A short capture of what shairport-sync sends
+      description: |
+        Stop MagicMirror first (for example `pm2 stop MagicMirror`): only one reader gets each item from the pipe, so MagicMirror would take them from the capture. Then start playback and run one of these for about 30 seconds, while you start a track, pause it and resume it.
+
+        Pipe (long lines such as cover art are cut so they can be pasted):
+        ```
+        timeout 30 cat /tmp/shairport-sync-metadata | cut -c1-300
+        ```
+
+        MQTT:
+        ```
+        mosquitto_sub -W 30 -t 'shairport/#' -F '%U %t %x' | cut -c1-300
+        ```
+
+        The capture contains the names of what you played. If you are asked for the complete capture, take it with `timeout 30 cat /tmp/shairport-sync-metadata > capture.raw` and attach it; `node test/replay.js capture.raw` shows what the module makes of it.
+      render: text
+    validations:
+      required: true
+  - type: textarea
+    id: log
+    attributes:
+      label: MagicMirror's log
+      description: The lines from MagicMirror's log mentioning `MMM-ShairportMetadata`, from the start-up on (for example `pm2 logs MagicMirror --lines 500 --nostream | grep -i shairport`).
+      render: text

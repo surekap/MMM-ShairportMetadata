@@ -1,0 +1,40 @@
+{
+  "name": "mmm-shairportmetadata",
+  "version": "1.1.0",
+  "description": "MagicMirror² module that shows AirPlay now-playing info from shairport-sync",
+  "main": "MMM-ShairportMetadata.js",
+  "scripts": {
+    "test": "node --test test/*.test.js",
+    "replay": "node test/replay.js",
+    "test:magicmirror": "node --test test/integration/magicmirror.test.js"
+  },
+  "keywords": [
+    "MagicMirror",
+    "MagicMirror²",
+    "module",
+    "shairport-sync",
+    "airplay"
+  ],
+  "author": "Prateek Sureka <surekap@gmail.com>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/surekap/MMM-ShairportMetadata.git"
+  },
+  "bugs": {
+    "url": "https://github.com/surekap/MMM-ShairportMetadata/issues"
+  },
+  "homepage": "https://github.com/surekap/MMM-ShairportMetadata#readme",
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "bplist-parser": "^0.5.0",
+    "mqtt": "^5.16.1"
+  },
+  "devDependencies": {
+    "aedes": "^1.2.0",
+    "bplist-creator": "^0.3.0",
+    "playwright": "^1.64.1"
+  }
+}
