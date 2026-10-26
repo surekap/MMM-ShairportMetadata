@@ -36,6 +36,7 @@ Module.register("MMM-ShairportMetadata", {
 		Log.info("Starting module: " + this.name);
 		this.model = { state: "stopped" };
 		this.albumart = null;
+		this.badArt = null;         // artwork the browser could not decode
 		this.baseSec = 0;
 		this.anchor = 0;
 		this.rate = 0;
@@ -115,7 +116,7 @@ Module.register("MMM-ShairportMetadata", {
 		const ui = this.getUi();
 		ui.title.textContent = this.model.title || "";
 		ui.artist.textContent = [this.model.artist, this.model.album].filter(Boolean).join(" - ");
-		if (this.albumart) {
+		if (this.albumart && this.albumart !== this.badArt) {
 			if (ui.art.getAttribute("src") !== this.albumart) { ui.art.src = this.albumart; }
 		} else {
 			ui.art.removeAttribute("src");
@@ -177,6 +178,11 @@ Module.register("MMM-ShairportMetadata", {
 		const card = this.element("div", "card", wrapper);
 		const art = this.element("img", "albumart", this.element("div", "art", card));
 		art.alt = "";
+		// Corrupt artwork would show as a broken-image box; hide it instead, and do not try it again.
+		art.addEventListener("error", () => {
+			this.badArt = art.getAttribute("src");
+			art.removeAttribute("src");
+		});
 		const progress = this.element("progress", "progress", this.element("div", "bar", card));
 		const time = this.element("div", "time", card);
 		const title = this.element("div", "title bright", card);

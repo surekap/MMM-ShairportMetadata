@@ -1,6 +1,7 @@
 // Builders for the data shairport-sync emits, so tests (and test/replay.js
 // captures) don't need a running shairport-sync.
 
+const zlib = require("zlib");
 const bplist = require("bplist-creator");
 
 const NPI = "kMRMediaRemoteNowPlayingInfo";
@@ -23,18 +24,57 @@ function copl(info) {
 	return bplist({ type: "updateMRNowPlayingInfo", params: { params: params } });
 }
 
+const CRC_TABLE = [];
+for (let n = 0; n < 256; n++) {
+	let c = n;
+	for (let k = 0; k < 8; k++) { c = (c & 1) ? (0xedb88320 ^ (c >>> 1)) : (c >>> 1); }
+	CRC_TABLE[n] = c >>> 0;
+}
+
+function crc32(buf) {
+	let crc = 0xffffffff;
+	for (const b of buf) { crc = CRC_TABLE[(crc ^ b) & 0xff] ^ (crc >>> 8); }
+	return (crc ^ 0xffffffff) >>> 0;
+}
+
+/** A PNG a browser can decode (a colour gradient), unlike JPEG and PNG below, which only have the magic bytes. */
+function validPng(width = 100, height = 100) {
+	const chunk = function(type, data) {
+		const body = Buffer.concat([Buffer.from(type, "latin1"), data]);
+		const head = Buffer.alloc(4); head.writeUInt32BE(data.length);
+		const tail = Buffer.alloc(4); tail.writeUInt32BE(crc32(body));
+		return Buffer.concat([head, body, tail]);
+	};
+	const ihdr = Buffer.alloc(13);
+	ihdr.writeUInt32BE(width, 0); ihdr.writeUInt32BE(height, 4);
+	ihdr[8] = 8; ihdr[9] = 2; // 8 bits per channel, RGB
+	const raw = Buffer.alloc((width * 3 + 1) * height);
+	for (let y = 0; y < height; y++) {
+		const row = y * (width * 3 + 1);
+		for (let x = 0; x < width; x++) {
+			raw[row + 1 + x * 3] = Math.round(x * 255 / width);
+			raw[row + 2 + x * 3] = Math.round(y * 255 / height);
+			raw[row + 3 + x * 3] = 128;
+		}
+	}
+	return Buffer.concat([
+		Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
+		chunk("IHDR", ihdr), chunk("IDAT", zlib.deflateSync(raw)), chunk("IEND", Buffer.alloc(0))
+	]);
+}
+
 const JPEG = Buffer.concat([Buffer.from([0xff, 0xd8, 0xff, 0xe0]), Buffer.alloc(64)]);
 const PNG = Buffer.concat([Buffer.from([0x89, 0x50, 0x4e, 0x47]), Buffer.alloc(64)]);
 
 /** A classic AirPlay track start, as pipe items. */
 function classicTrack(opts = {}) {
-	const o = Object.assign({ title: "Song", artist: "Artist", album: "Album", start: 1000, current: 1000, end: 1000 + 200 * 44100 }, opts);
+	const o = Object.assign({ title: "Song", artist: "Artist", album: "Album", art: JPEG, start: 1000, current: 1000, end: 1000 + 200 * 44100 }, opts);
 	return [
 		item("ssnc", "mdst"),
 		item("core", "asar", o.artist),
 		item("core", "asal", o.album),
 		item("core", "minm", o.title),
-		item("ssnc", "PICT", JPEG),
+		item("ssnc", "PICT", o.art),
 		item("ssnc", "mden"),
 		item("ssnc", "prgr", o.start + "/" + o.current + "/" + o.end),
 		item("ssnc", "pffr")
@@ -55,4 +95,4 @@ function waitFor(predicate, ms = 3000) {
 	});
 }
 
-module.exports = { item, copl, classicTrack, waitFor, JPEG, PNG, NPI };
+module.exports = { item, copl, classicTrack, waitFor, validPng, JPEG, PNG, NPI };

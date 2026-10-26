@@ -37,7 +37,7 @@ module.exports = NodeHelper.create({
 
 	connect: function(config) {
 		const self = this;
-		const log = function(message) { console.log(self.name + ": " + message); };
+		const log = function(message) { console.log(message); }; // MagicMirror prefixes the module's name
 		this.state = new ShairportState({ sampleRate: config.sampleRate });
 		const handlers = {
 			log: log,

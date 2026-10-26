@@ -10,6 +10,8 @@ const assert = require("node:assert");
 const fs = require("fs");
 const path = require("path");
 
+const { validPng } = require("./helpers");
+
 const SOURCE = fs.readFileSync(path.join(__dirname, "..", "MMM-ShairportMetadata.js"), "utf8");
 
 const STUBS = `
@@ -323,6 +325,28 @@ browserTest("artwork is kept when a state does not mention it, and removed when 
 		return [a, b, c];
 	});
 	assert.deepStrictEqual(r, ["data:image/png;base64,AAAA", "data:image/png;base64,AAAA", null]);
+});
+
+browserTest("artwork the browser cannot decode is hidden, not shown as a broken image, and not retried", async function(page) {
+	const bad = "data:image/png;base64,AAAA";
+	await page.evaluate(function(b) { create(); m.socketNotificationReceived("STATE", state({ artwork: b })); }, bad);
+	await page.waitForFunction(function() { return !document.querySelector(".albumart").hasAttribute("src"); });
+	const r = await page.evaluate(function(b) {
+		var has = function() { return document.querySelector(".albumart").hasAttribute("src"); };
+		m.socketNotificationReceived("STATE", state({ position: 30 }));   // the same artwork, not mentioned
+		var unmentioned = has();
+		m.socketNotificationReceived("STATE", state({ artwork: b }));     // the same bad artwork again
+		return { unmentioned: unmentioned, again: has() };
+	}, bad);
+	assert.deepStrictEqual(r, { unmentioned: false, again: false });
+});
+
+browserTest("artwork that decodes is shown at its size", async function(page) {
+	const png = "data:image/png;base64," + validPng().toString("base64");
+	await page.evaluate(function(p) { create(); m.socketNotificationReceived("STATE", state({ artwork: p })); }, png);
+	await page.waitForFunction(function() { var i = document.querySelector(".albumart"); return i.complete && i.naturalWidth > 0; });
+	const natural = await page.evaluate(function() { return document.querySelector(".albumart").naturalWidth; });
+	assert.strictEqual(natural, 100);
 });
 
 browserTest("alignment: left, right, anything else is center", async function(page) {

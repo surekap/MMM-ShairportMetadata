@@ -59,7 +59,7 @@ metadata =
 };
 
 ```
-The pipe is a Unix named pipe (Linux, macOS); where there is none, use MQTT. The user that runs MagicMirror must be able to read the pipe. If shairport-sync is not running yet, or restarts, the module waits for it and reconnects by itself, backing off from 1 to 30 seconds; the log line `MMM-ShairportMetadata: reading /tmp/shairport-sync-metadata` says when it is connected.
+The pipe is a Unix named pipe (Linux, macOS); where there is none, use MQTT. The user that runs MagicMirror must be able to read the pipe. If shairport-sync is not running yet, or restarts, the module waits for it and reconnects by itself, backing off from 1 to 30 seconds; the log line `reading /tmp/shairport-sync-metadata` says when it is connected.
 
 ### MQTT
 shairport-sync must be built with MQTT support (`--with-mqtt-client`; `shairport-sync -V` lists `mqtt`), and the module needs `npm install`. You also need a broker, for example Mosquitto. In shairport-sync's configuration:
