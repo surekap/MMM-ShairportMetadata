@@ -1,11 +1,45 @@
+.MMM-ShairportMetadata .card {
+	display: inline-block;
+	max-width: 300px;
+	text-align: inherit;
+}
+
+.MMM-ShairportMetadata .albumart {
+	width: 100px;
+	height: 100px;
+	object-fit: cover;
+	vertical-align: bottom;
+}
+
+.MMM-ShairportMetadata .albumart:not([src]) {
+	display: none;
+}
+
+.MMM-ShairportMetadata .title,
+.MMM-ShairportMetadata .artist {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
 .MMM-ShairportMetadata progress[value] {
 	-webkit-appearance: none;
-   	appearance: none;
-    color: red;
-		width: 150px;
-    border: 1px solid white;
-    border-radius: 10px;
-    height: 5px;
+	appearance: none;
+	color: red;
+	width: 150px;
+	border: 1px solid white;
+	border-radius: 10px;
+	height: 5px;
+}
+
+.MMM-ShairportMetadata .bar,
+.MMM-ShairportMetadata .time {
+	margin: 4px 0;
+}
+
+.MMM-ShairportMetadata .bar:has(progress[hidden]),
+.MMM-ShairportMetadata .time[hidden] {
+	display: none;
 }
 
 .MMM-ShairportMetadata progress[value]::-webkit-progress-bar {
