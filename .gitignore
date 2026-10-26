@@ -1,0 +1,7 @@
+node_modules/
+*.log
+.DS_Store
+
+# captures of the metadata pipe contain track names and cover art: share them in an issue, don't commit them by accident
+capture*.txt
+capture*.raw

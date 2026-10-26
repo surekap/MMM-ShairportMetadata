@@ -1,0 +1,51 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    # parser, state, pipe and MQTT transports, node_helper and the front-end (in Chromium), no hardware needed
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node: [22, 24]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npm test
+
+  magicmirror:
+    # the module inside the current MagicMirror, fed through a named pipe (test/integration/magicmirror.test.js)
+    runs-on: ubuntu-latest
+    # Written against MagicMirror's source but never run when it was added. Remove this line once the job has passed.
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - name: Install MagicMirror
+        run: |
+          git clone --depth 1 https://github.com/MagicMirrorOrg/MagicMirror.git "$RUNNER_TEMP/MagicMirror"
+          cd "$RUNNER_TEMP/MagicMirror"
+          git log -1 --format='MagicMirror %h %cs %s'
+          npm ci --omit=dev
+      - run: npm run test:magicmirror
+        env:
+          MAGICMIRROR_DIR: ${{ runner.temp }}/MagicMirror
