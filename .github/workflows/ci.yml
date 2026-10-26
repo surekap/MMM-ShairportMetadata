@@ -30,7 +30,8 @@ jobs:
   magicmirror:
     # the module inside the current MagicMirror, fed through a named pipe (test/integration/magicmirror.test.js)
     runs-on: ubuntu-latest
-    # Written against MagicMirror's source but never run when it was added. Remove this line once the job has passed.
+    # The test passes locally against MagicMirror 2.38.0 on Node 24, but this job has not run on GitHub yet.
+    # Remove this line once it has passed there.
     continue-on-error: true
     steps:
       - uses: actions/checkout@v4
