@@ -64,7 +64,6 @@ class ShairportState {
 
 	reset() {
 		this.active = false;      // a play session is in progress
-		this.clientIp = null;     // address of the connected sender, for matching ssnc/disc
 		this.coplSeen = false;    // sender provides MediaRemote now-playing info
 		this.fresh = false;       // a classic metadata bundle began; its first tag clears the old text
 		this.track = emptyTrack();
@@ -104,18 +103,11 @@ class ShairportState {
 	 */
 	handle(code, payload, ms) {
 		switch (code) {
-			case "ssnc/conn":
-			case "ssnc/clip":
-				this.clientIp = text(payload);
-				return false;
-
-			// The sender disconnected. pend follows ~20 s later, which is too slow.
-			case "ssnc/disc":
-				if (this.clientIp && text(payload) !== this.clientIp) { return false; }
-				return this.end();
-
+			// The play session has stopped: the sender disconnected, or another one took over. This is the
+			// only end of a session. ssnc/disc is one client connection closing, and a phone drops a secondary
+			// one while music keeps playing; ssnc/aend means "inactive for active_state_timeout" (10 s by
+			// default), which a plain pause also is. Neither ends anything.
 			case "ssnc/pend":
-			case "ssnc/aend":
 				return this.end();
 
 			case "ssnc/abeg":

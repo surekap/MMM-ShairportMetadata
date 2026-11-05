@@ -214,12 +214,45 @@ test("AirPlay 2: an unusable plist is reported", function() {
 	assert.strictEqual(s.handle("ssnc/copl", copl({}), T0), false);
 });
 
-test("a disconnect from the connected sender ends the session at once; another sender's does not", function() {
+// What shairport-sync really sends (metadata/core.c, rtsp.c, player.c, activity_monitor.c):
+// - disc: one client connection closed. A phone drops a secondary connection while music keeps playing
+//   (seen on hardware, #21), so it is not the end of the session, even for the sender we play from.
+// - aend: the player has been inactive for active_state_timeout (10 s by default), and a pause makes it inactive.
+// - pend: the play session has stopped (disconnect, or another sender took over). A pause does not send it.
+
+test("disc does not end the session, even from the sender we play from", function() {
 	const s = new ShairportState();
-	feed(s, T0, [["ssnc/clip", "192.168.1.20"]]);
+	feed(s, T0, [["ssnc/conn", "192.168.1.20"], ["ssnc/clip", "192.168.1.20"]]);
 	airplay2(s, T0, { ContentItemIdentifier: "a", Title: "T", Timestamp: NOW, PlaybackRate: 1, ElapsedTime: 0 });
-	assert.strictEqual(s.handle("ssnc/disc", Buffer.from("192.168.1.99"), T0), false);
-	assert.strictEqual(s.snapshot(T0, false).state, "playing");
-	assert.strictEqual(s.handle("ssnc/disc", Buffer.from("192.168.1.20"), T0), true);
-	assert.strictEqual(s.snapshot(T0, false).state, "stopped");
+	assert.strictEqual(s.handle("ssnc/disc", Buffer.from("192.168.1.20"), T0 + 5000), false);
+	const snap = s.snapshot(T0 + 5000, false);
+	assert.strictEqual(snap.state, "playing");
+	assert.strictEqual(snap.position, 5);
+});
+
+test("aend 10 s after a pause does not end the session: a paused track stays", function() {
+	const s = new ShairportState();
+	airplay2(s, T0, { ContentItemIdentifier: "a", Title: "T", Duration: 300, Timestamp: NOW, PlaybackRate: 1, ElapsedTime: 0 });
+	feed(s, T0 + 20000, [["ssnc/paus"]]);
+	assert.strictEqual(s.handle("ssnc/aend", Buffer.alloc(0), T0 + 30000), false);
+	const snap = s.snapshot(T0 + 30000, false);
+	assert.strictEqual(snap.state, "paused");
+	assert.strictEqual(snap.position, 20);
+});
+
+test("pend ends the session, however long it was paused", function() {
+	const s = new ShairportState();
+	airplay2(s, T0, { ContentItemIdentifier: "a", Title: "T", Duration: 300, Timestamp: NOW, PlaybackRate: 1, ElapsedTime: 0 });
+	feed(s, T0 + 20000, [["ssnc/paus"], ["ssnc/aend"]]);
+	assert.strictEqual(s.handle("ssnc/pend", Buffer.alloc(0), T0 + 600000), true);
+	assert.strictEqual(s.snapshot(T0 + 600000, false).state, "stopped");
+});
+
+test("a classic session ends with pend as well, and a flush (pause) does not end it", function() {
+	const s = new ShairportState();
+	startClassic(s);
+	feed(s, T0 + 5000, [["ssnc/pfls"], ["ssnc/aend"]]);
+	assert.strictEqual(s.snapshot(T0 + 20000, false).state, "paused");
+	feed(s, T0 + 30000, [["ssnc/pend"]]);
+	assert.strictEqual(s.snapshot(T0 + 30000, false).state, "stopped");
 });

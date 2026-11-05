@@ -205,8 +205,8 @@ test("the pipe transport inside MagicMirror", { skip: skip, timeout: 240000 }, a
 		await until(mm.isHidden, "the module to hide");
 	});
 
-	await t.test("AirPlay 2 now-playing info shows the card, and a disconnect hides it", async function() {
-		write(item("ssnc", "abeg") + item("ssnc", "clip", "192.0.2.7") + item("ssnc", "copl", copl({
+	await t.test("AirPlay 2 now-playing info shows the card; only the end of the play session hides it", async function() {
+		write(item("ssnc", "abeg") + item("ssnc", "conn", "192.0.2.7") + item("ssnc", "copl", copl({
 			ContentItemIdentifier: "ap2-1", Title: "From AirPlay 2", Artist: "Someone", Album: "Somewhere", Duration: 180,
 			ArtworkData: ART, Timestamp: new Date(), PlaybackRate: 1, ElapsedTime: 30
 		})));
@@ -214,8 +214,21 @@ test("the pipe transport inside MagicMirror", { skip: skip, timeout: 240000 }, a
 		await until(async function() { return (await decoded(mm.page)) === 100; }, "the AirPlay 2 cover art to decode");
 		assert.strictEqual(await mm.textOf(".title"), "From AirPlay 2");
 		assert.match(await mm.textOf(".time"), /^0:3[0-2] - 3:00$/);
+
+		// a phone drops a secondary connection while music keeps playing: the card stays
 		write(item("ssnc", "disc", "192.0.2.7"));
-		await until(mm.isHidden, "the module to hide after disc");
+		await sleep(1500);
+		assert.strictEqual(await mm.isShown(), true, "a disc from the sender we play from hid the card");
+
+		// a pause: shairport-sync sends aend once the player has been inactive for 10 s; the card stays, paused
+		write(item("ssnc", "paus") + item("ssnc", "aend"));
+		await until(async function() { return (await mm.textOf(".time")).includes("(paused)"); }, "the paused label");
+		await sleep(1500);
+		assert.strictEqual(await mm.isShown(), true, "an aend after a pause hid the card");
+
+		// the session itself ends
+		write(item("ssnc", "pend") + item("ssnc", "disc", "192.0.2.7") + item("ssnc", "aend"));
+		await until(mm.isHidden, "the module to hide after pend");
 	});
 
 	await t.test("a reloaded page shows what is playing at once", async function() {
@@ -288,15 +301,18 @@ test("the MQTT transport inside MagicMirror", { skip: skip, timeout: 240000 }, a
 		await mm.screenshot("mqtt-playing");
 	});
 
-	await t.test("AirPlay 2 now-playing info arrives as a binary payload, and a disconnect hides the card", async function() {
-		await publish("ssnc/clip", "192.0.2.9");
+	await t.test("AirPlay 2 now-playing info arrives as a binary payload; only pend hides the card", async function() {
+		await publish("ssnc/conn", "192.0.2.9");
 		await publish("ssnc/copl", copl({
 			ContentItemIdentifier: "ap2-mqtt", Title: "AirPlay 2 over MQTT", Artist: "Someone", Duration: 120,
 			Timestamp: new Date(), PlaybackRate: 1, ElapsedTime: 5
 		}));
 		await until(async function() { return (await mm.textOf(".title")) === "AirPlay 2 over MQTT"; }, "the AirPlay 2 title");
 		await publish("ssnc/disc", "192.0.2.9");
-		await until(mm.isHidden, "the module to hide after disc");
+		await sleep(1500);
+		assert.strictEqual(await mm.isShown(), true, "a disc hid the card");
+		await publish("ssnc/pend", "");
+		await until(mm.isHidden, "the module to hide after pend");
 	});
 
 	await t.test("neither MagicMirror nor the page reported a problem", function() {
